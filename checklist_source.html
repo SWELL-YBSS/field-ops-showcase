@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TJC Auto Electrical - Mine Ute Inspection Checklist</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#00A2EA">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TJC Checklist">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png" type="image/png">
+<script src="jspdf.umd.min.js"></script>
+<style>
+  @font-face {
+    font-family: "TJC Pixel";
+    src: url(data:font/woff2;base64,__FONT_BASE64__) format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  :root {
+    --blue: #00A2EA;
+    --blue-rgb: 0,162,234;
+    --grey: #9aabb8;
+    --dark: #eef2f5;
+    --dark-dim: #7d93a3;
+    --pass: #2e9e3f;
+    --pass-rgb: 46,158,63;
+    --fail: #d8332a;
+    --fail-rgb: 216,51,42;
+    --na: #99a5ae;
+    --bg: #060b12;
+    --panel: #0d1b28;
+    --panel-line: rgba(0,162,234,0.28);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: auto; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--dark);
+    padding-bottom: 110px;
+    position: relative;
+  }
+  #ambientField {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    display: block;
+  }
+  .vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 65% 40% at 50% 8%, rgba(var(--blue-rgb),0.18), transparent 60%),
+      radial-gradient(ellipse 80% 60% at 85% 90%, rgba(var(--blue-rgb),0.08), transparent 55%);
+  }
+  header, .container, .submit-bar, .success-screen { position: relative; z-index: 1; }
+  .demo-ribbon {
+    background: #ffb020;
+    color: #201400;
+    text-align: center;
+    font-family: "TJC Pixel", monospace;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    padding: 7px 10px;
+    position: relative;
+    z-index: 11;
+  }
+  header {
+    background: rgba(13,27,40,0.9);
+    backdrop-filter: blur(6px);
+    padding: 14px 16px 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--panel-line);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  header img { max-width: 220px; width: 100%; height: auto; filter: drop-shadow(0 0 10px rgba(var(--blue-rgb),0.35)); }
+  .home-link {
+    display: inline-block;
+    margin-top: 10px;
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-size: 12px;
+    color: var(--dark-dim);
+    text-decoration: none;
+    letter-spacing: 0.5px;
+  }
+  .home-link:hover, .home-link:focus-visible { color: var(--blue); }
+  header h1 {
+    font-family: "TJC Pixel", monospace;
+    font-size: 12px;
+    color: var(--grey);
+    margin: 14px 0 0;
+    font-weight: 400;
+    letter-spacing: 1px;
+    line-height: 1.6;
+  }
+  .step-indicator {
+    margin-top: 10px;
+    font-family: "TJC Pixel", monospace;
+    font-size: 10px;
+    color: var(--blue);
+    letter-spacing: 1.5px;
+  }
+  .container { max-width: 640px; margin: 0 auto; padding: 12px; }
+  .step { display: none; }
+  .step.active { display: block; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 14px;
+    box-shadow: 0 20px 40px -28px rgba(0,0,0,0.7);
+  }
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  label.field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--dark-dim);
+    margin-bottom: 5px;
+  }
+  input[type="text"], input[type="date"], input[type="number"], textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--panel-line);
+    border-radius: 6px;
+    font-size: 15px;
+    background: rgba(var(--blue-rgb), 0.05);
+    color: var(--dark);
+  }
+  input[type="text"]::placeholder, input[type="number"]::placeholder, textarea::placeholder { color: var(--dark-dim); }
+  input:focus-visible, textarea:focus-visible, button:focus-visible, .btn-group label:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+  }
+  textarea { resize: vertical; min-height: 60px; font-family: inherit; }
+  .section-title {
+    font-family: "TJC Pixel", monospace;
+    background: rgba(var(--blue-rgb), 0.12);
+    border: 1px solid var(--panel-line);
+    color: var(--blue);
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 0 0 10px;
+  }
+  .item {
+    border-bottom: 1px solid var(--panel-line);
+    padding: 12px 0;
+  }
+  .item:last-child { border-bottom: none; }
+  .item-label {
+    font-size: 14.5px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--dark);
+  }
+  .btn-group {
+    display: flex;
+    gap: 8px;
+  }
+  .btn-group input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .btn-group label {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 4px;
+    border: 2px solid var(--panel-line);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--dark-dim);
+    cursor: pointer;
+    min-height: 40px;
+    user-select: none;
+    transition: all 0.15s ease;
+  }
+  .btn-group input[type="radio"]:checked + label.lbl-pass {
+    background: var(--pass); border-color: var(--pass); color: #fff;
+    box-shadow: 0 0 14px rgba(var(--pass-rgb),0.45);
+  }
+  .btn-group input[type="radio"]:checked + label.lbl-fail {
+    background: var(--fail); border-color: var(--fail); color: #fff;
+    box-shadow: 0 0 14px rgba(var(--fail-rgb),0.45);
+  }
+  .btn-group input[type="radio"]:checked + label.lbl-na {
+    background: var(--na); border-color: var(--na); color: #10161c;
+  }
+  .comment-box {
+    display: none;
+    margin-top: 10px;
+  }
+  .comment-box.show { display: block; }
+  .comment-box textarea {
+    border-color: var(--fail);
+    background: rgba(var(--fail-rgb), 0.08);
+  }
+  .comment-box .hint {
+    font-size: 12px;
+    color: var(--fail);
+    margin-bottom: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .comment-box.value-box textarea,
+  .comment-box.value-box input[type="number"] {
+    border-color: var(--blue);
+    background: rgba(var(--blue-rgb), 0.08);
+  }
+  .comment-box.value-box .hint {
+    color: var(--blue);
+  }
+  .value-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .value-input-row input[type="number"] {
+    flex: 1;
+  }
+  .value-unit {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--blue);
+  }
+  .summary-card {
+    border: 1px solid var(--blue);
+    box-shadow: 0 0 24px rgba(var(--blue-rgb),0.12);
+  }
+  .draft-banner {
+    max-width: 640px;
+    margin: 0 auto 10px;
+    padding: 10px 14px;
+    background: rgba(var(--blue-rgb), 0.1);
+    border: 1px solid var(--blue);
+    border-radius: 8px;
+    color: var(--blue);
+    font-size: 13px;
+    text-align: center;
+  }
+  .summary-card h3 {
+    font-family: "TJC Pixel", monospace;
+    margin: 0 0 14px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--blue);
+  }
+  #summaryContent { font-size: 14px; line-height: 1.5; color: var(--dark-dim); }
+  #summaryContent .fail-row { margin-bottom: 8px; }
+  #summaryContent .fail-row strong { color: var(--fail); }
+  #summaryContent .ok-msg { color: var(--pass); font-weight: 600; }
+  .submit-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(13,27,40,0.92);
+    backdrop-filter: blur(6px);
+    border-top: 1px solid var(--panel-line);
+    padding: 12px 16px;
+  }
+  .submit-bar .container { padding: 0; max-width: 640px; }
+  .nav-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  button.back-btn {
+    flex: 0 0 90px;
+    background: transparent;
+    color: var(--dark-dim);
+    border: 2px solid var(--panel-line);
+    padding: 14px 4px;
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  button.submit-btn {
+    flex: 1;
+    background: var(--blue);
+    color: #04121c;
+    border: none;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(var(--blue-rgb),0.35);
+  }
+  button.submit-btn:active, button.back-btn:active { opacity: 0.85; }
+  button.submit-btn:disabled { opacity: 0.6; box-shadow: none; cursor: default; }
+  .success-screen {
+    display: none;
+    text-align: center;
+    padding: 60px 20px;
+  }
+  .success-screen.show { display: block; }
+  .success-screen h2 {
+    font-family: "TJC Pixel", monospace;
+    font-size: 18px;
+    letter-spacing: 1px;
+    color: #39ff88;
+    text-shadow: 0 0 10px rgba(57,255,136,0.5);
+    margin: 18px 0 10px;
+  }
+  .success-screen p { color: var(--dark-dim); }
+  .success-btn {
+    display: inline-block;
+    margin: 22px auto 0;
+    background: var(--panel);
+    color: var(--blue);
+    border: 1px solid rgba(0,162,234,0.55);
+    border-radius: 10px;
+    padding: 9px 18px;
+    font-family: "TJC Pixel", monospace;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-decoration: none;
+    text-align: center;
+    box-shadow: 0 0 18px rgba(var(--blue-rgb),0.18);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .success-btn:hover, .success-btn:focus-visible {
+    border-color: var(--blue);
+    box-shadow: 0 0 24px rgba(var(--blue-rgb),0.3);
+  }
+  .success-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+  .success-screen .tick {
+    width: 40px;
+    height: 40px;
+    margin: 6px auto 0;
+    background: #ffd700;
+    filter: drop-shadow(0 0 10px rgba(255,215,0,0.6));
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  }
+  .night-scene {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    background: linear-gradient(to bottom, #050b16 0%, #0d1b2a 65%, #16222f 100%);
+    overflow: hidden;
+    border-radius: 10px;
+    border: 1px solid var(--panel-line);
+    margin-bottom: 18px;
+  }
+  .scene-star {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: #fff;
+    animation: scene-twinkle 2.4s ease-in-out infinite;
+  }
+  @keyframes scene-twinkle {
+    0%, 100% { opacity: 0.25; }
+    50% { opacity: 0.9; }
+  }
+  .moon {
+    position: absolute;
+    top: 10px; right: 16px;
+    width: 18px; height: 18px;
+    background: #f4f0e0;
+    border-radius: 50%;
+    box-shadow: 0 0 10px 2px rgba(244,240,224,0.35);
+  }
+  .workshop {
+    position: absolute;
+    left: 6px; bottom: 16px;
+    width: 78px; height: 60px;
+  }
+  .workshop-roof {
+    position: absolute; top: 0; left: -6px;
+    width: 91px; height: 20px;
+    background: #8b5a2b;
+    clip-path: polygon(0 100%, 50% 0, 100% 100%);
+  }
+  .workshop-body {
+    position: absolute; top: 17px; left: 0;
+    width: 78px; height: 43px;
+    background: #f0f2f4;
+    border-top: 2px solid #c7ced4;
+  }
+  .workshop-sign {
+    position: absolute; top: 22px; left: 4px;
+    width: 70px;
+    text-align: center;
+    font-family: "TJC Pixel", monospace;
+    font-size: 5.5px;
+    letter-spacing: 0.5px;
+    color: var(--blue);
+  }
+  .workshop-window {
+    position: absolute; bottom: 10px; left: 29px;
+    width: 14px; height: 14px;
+    background: #ffd76a;
+    box-shadow: 0 0 8px 2px rgba(255,215,106,0.55);
+  }
+  .car {
+    position: absolute;
+    bottom: 16px; left: 110px;
+    width: 60px; height: 29px;
+  }
+  .car-body {
+    position: absolute; bottom: 8px; left: 0;
+    width: 60px; height: 13px;
+    background: #7c8b98; border-radius: 4px;
+  }
+  .car-cab {
+    position: absolute; bottom: 18px; left: 12px;
+    width: 29px; height: 12px;
+    background: #7c8b98; border-radius: 6px 6px 0 0;
+  }
+  .car-wheel {
+    position: absolute; bottom: 0;
+    width: 12px; height: 12px;
+    background: #10161d; border-radius: 50%;
+  }
+  .car-wheel-l { left: 8px; }
+  .car-wheel-r { left: 40px; }
+  .smoke-puff {
+    position: absolute; bottom: 31px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(180,190,200,0.55);
+    animation: smoke-rise 3s ease-in infinite;
+  }
+  .smoke-puff.sp1 { left: 24px; animation-delay: 0s; }
+  .smoke-puff.sp2 { left: 29px; animation-delay: 1s; }
+  .smoke-puff.sp3 { left: 21px; animation-delay: 2s; }
+  @keyframes smoke-rise {
+    0% { transform: translate(0,0) scale(0.6); opacity: 0.6; }
+    100% { transform: translate(6px,-28px) scale(1.5); opacity: 0; }
+  }
+  .bush {
+    position: absolute;
+    bottom: 14px;
+    background: #16331f;
+    border-radius: 50% 50% 40% 40%;
+  }
+  .bush-1 { right: 16px; width: 26px; height: 16px; }
+  .bush-2 { right: 2px; width: 18px; height: 12px; }
+  .ground {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 16px;
+    background: repeating-linear-gradient(90deg, #10161d 0 14px, #0a0e13 14px 16px);
+  }
+  .ufo-canvas {
+    position: absolute;
+    top: 14px;
+    left: -80px;
+    image-rendering: pixelated;
+  }
+  .beam {
+    position: absolute;
+    top: 40px;
+    width: 26px;
+    height: 0;
+    background: linear-gradient(to bottom, rgba(150,255,210,0.5), rgba(150,255,210,0.05));
+    clip-path: polygon(35% 0, 65% 0, 100% 100%, 0% 100%);
+    opacity: 0;
+    transition: opacity 300ms ease, height 300ms ease;
+    pointer-events: none;
+  }
+  .beam.show { opacity: 1; height: 76px; }
+  .grinch-sprite {
+    position: absolute;
+    bottom: 18px;
+    left: 118px;
+    width: 14px;
+    height: 20px;
+  }
+  .grinch-sprite.sneaking {
+    animation: grinch-sneak 300ms ease-in-out infinite;
+  }
+  @keyframes grinch-sneak {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+  }
+  .grinch-sprite .g-head {
+    position: absolute; top: 0; left: 2px;
+    width: 10px; height: 8px;
+    background: #3fae4a; border-radius: 50% 50% 40% 40%;
+  }
+  .grinch-sprite .g-eyes {
+    position: absolute; top: 3px; left: 4px;
+    width: 6px; height: 2px;
+    background: #ffe14d;
+  }
+  .grinch-sprite .g-body {
+    position: absolute; top: 7px; left: 1px;
+    width: 12px; height: 13px;
+    background: #2e8f3b; border-radius: 4px 4px 2px 2px;
+  }
+  .cat-runner {
+    position: absolute;
+    bottom: 14px;
+    left: -30px;
+    width: 20px;
+    height: 12px;
+  }
+  .cat-runner .c-tail {
+    position: absolute; bottom: 6px; left: -3px;
+    width: 8px; height: 3px;
+    background: #f4f4f4; border-radius: 3px;
+    transform: rotate(20deg);
+  }
+  .cat-runner .c-body {
+    position: absolute; bottom: 3px; left: 2px;
+    width: 14px; height: 7px;
+    background: #f4f4f4; border-radius: 4px;
+  }
+  .cat-runner .c-head {
+    position: absolute; bottom: 6px; left: 12px;
+    width: 8px; height: 7px;
+    background: #f4f4f4; border-radius: 3px;
+  }
+  .cat-runner .c-ear {
+    position: absolute; bottom: 12px;
+    width: 3px; height: 3px;
+    background: #f4f4f4;
+  }
+  .cat-runner .c-ear-l { left: 13px; }
+  .cat-runner .c-ear-r { left: 17px; }
+  .cat-runner .c-legs {
+    position: absolute; bottom: 0; left: 4px;
+    width: 10px; height: 4px;
+    background: #f4f4f4;
+  }
+  .cat-runner.running .c-legs { animation: cat-legs 280ms steps(2) infinite; }
+  @keyframes cat-legs {
+    0% { transform: skewX(0deg); }
+    50% { transform: skewX(18deg); }
+    100% { transform: skewX(-18deg); }
+  }
+  .error-msg {
+    color: var(--fail);
+    font-size: 13px;
+    margin-top: 6px;
+    display: none;
+  }
+  .firework-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    overflow: hidden;
+  }
+  .firework-particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    opacity: 1;
+    animation: firework-burst 1000ms ease-out forwards;
+  }
+  @keyframes firework-burst {
+    to {
+      transform: translate(var(--fx), var(--fy)) scale(0.2);
+      opacity: 0;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="demo-ribbon">PORTFOLIO DEMO — a real client build, shown here with sending disabled. No data leaves your browser.</div>
+
+<canvas id="ambientField" aria-hidden="true"></canvas>
+<div class="vignette" aria-hidden="true"></div>
+
+<header>
+  <img src="data:image/png;base64,__LOGO_BASE64__" alt="TJC Auto Electrical">
+  <h1>Mine Ute Inspection Checklist</h1>
+  <div class="step-indicator" id="stepIndicator">Step 1 of 5</div>
+  <br>
+  <a class="home-link" href="index.html">&#8249; Field Ops</a>
+</header>
+
+<div class="container" id="formView">
+
+  <form id="checklistForm">
+
+    <div class="step active" id="step-details">
+      <div class="card">
+        <div class="section-title">Job Details</div>
+        <div class="field">
+          <label class="field-label">Job Card Number</label>
+          <input type="text" name="job_card_number" required>
+        </div>
+        <div class="field">
+          <label class="field-label">Asset #</label>
+          <input type="text" name="asset_number" required>
+        </div>
+        <div class="field">
+          <label class="field-label">Registration</label>
+          <input type="text" name="registration" required>
+        </div>
+        <div class="field">
+          <label class="field-label">Date</label>
+          <input type="date" name="inspection_date" required>
+        </div>
+        <div class="field">
+          <label class="field-label">Inspector</label>
+          <input type="text" name="inspector" required>
+        </div>
+      </div>
+    </div>
+
+    <div id="sections"></div>
+  </form>
+
+</div>
+
+<div class="success-screen container" id="successView">
+  <div class="night-scene">
+    <div class="scene-star" style="top:10px; left:20px;"></div>
+    <div class="scene-star" style="top:22px; left:44px; animation-delay:-0.6s;"></div>
+    <div class="scene-star" style="top:8px; left:70px; animation-delay:-1.2s;"></div>
+    <div class="scene-star" style="top:26px; left:120px; animation-delay:-1.8s;"></div>
+    <div class="scene-star" style="top:14px; left:160px; animation-delay:-0.9s;"></div>
+    <div class="moon"></div>
+
+    <div class="workshop">
+      <div class="workshop-roof"></div>
+      <div class="workshop-body"></div>
+      <div class="workshop-sign">TJC AUTO ELECTRICAL</div>
+      <div class="workshop-window"></div>
+    </div>
+
+    <div class="car">
+      <div class="car-body"></div>
+      <div class="car-cab"></div>
+      <div class="car-wheel car-wheel-l"></div>
+      <div class="car-wheel car-wheel-r"></div>
+      <div class="smoke-puff sp1"></div>
+      <div class="smoke-puff sp2"></div>
+      <div class="smoke-puff sp3"></div>
+    </div>
+
+    <div class="bush bush-1"></div>
+    <div class="bush bush-2"></div>
+    <div class="ground"></div>
+
+    <canvas class="ufo-canvas" id="ufoCanvas" width="75" height="39"></canvas>
+    <div class="beam" id="beam"></div>
+    <div class="grinch-sprite" id="grinchSprite">
+      <div class="g-head"></div>
+      <div class="g-eyes"></div>
+      <div class="g-body"></div>
+    </div>
+
+    <div class="cat-runner" id="catRunner">
+      <div class="c-tail"></div>
+      <div class="c-body"></div>
+      <div class="c-head"></div>
+      <div class="c-ear c-ear-l"></div>
+      <div class="c-ear c-ear-r"></div>
+      <div class="c-legs"></div>
+    </div>
+  </div>
+  <div class="tick"></div>
+  <h2>Thanks Legend!</h2>
+  <p id="submitHint">Your form's been submitted.</p>
+  <a class="success-btn" id="iosPdfLink" download style="display:none; margin-bottom:10px;">Download PDF Copy</a>
+  <a class="success-btn" href="index.html">Fill Out Another Form</a>
+</div>
+
+<div class="submit-bar">
+  <div class="container">
+    <div class="nav-buttons">
+      <button type="button" class="back-btn" id="backBtn" style="display:none">Back</button>
+      <button type="button" class="submit-btn" id="submitBtn">Next</button>
+    </div>
+    <div class="error-msg" id="errorMsg">Please complete all required fields and add a comment for any failed item.</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var canvas = document.getElementById('ambientField');
+  var ctx = canvas.getContext('2d');
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var stars = [];
+  var STAR_COUNT = 70;
+
+  function resize() {
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function makeStars() {
+    stars = [];
+    for (var i = 0; i < STAR_COUNT; i++) {
+      stars.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        r: 0.5 + Math.random() * 1.2,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.0009 + Math.random() * 0.0018
+      });
+    }
+  }
+
+  var PLANETS = [
+    { fx: 0.86, fy: 0.24, r: 40, body: '#3a6fa8', highlight: '#7fb2e8', ring: 'rgba(170,205,255,0.32)' },
+    { fx: 0.09, fy: 0.7, r: 25, body: '#a8503a', highlight: '#d98a68', ring: null }
+  ];
+
+  function drawPlanet(p, w, h) {
+    var x = p.fx * w, y = p.fy * h;
+    if (p.ring) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(-0.35);
+      ctx.strokeStyle = p.ring;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, p.r * 1.7, p.r * 0.55, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (p.atmosphere) {
+      ctx.beginPath();
+      ctx.fillStyle = p.atmosphere;
+      ctx.arc(x, y, p.r * 1.18, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    var grad = ctx.createRadialGradient(x - p.r * 0.35, y - p.r * 0.35, p.r * 0.15, x, y, p.r);
+    grad.addColorStop(0, p.highlight);
+    grad.addColorStop(1, p.body);
+    ctx.beginPath();
+    ctx.fillStyle = grad;
+    ctx.arc(x, y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+    if (p.continents || p.craters) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, p.r, 0, Math.PI * 2);
+      ctx.clip();
+      if (p.continents) {
+        ctx.fillStyle = '#3f8f52';
+        p.continents.forEach(function (c) {
+          ctx.beginPath();
+          ctx.ellipse(x + c.cx * p.r, y + c.cy * p.r, c.rx * p.r, c.ry * p.r, 0.4, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+      if (p.craters) {
+        ctx.fillStyle = 'rgba(0,0,0,0.22)';
+        p.craters.forEach(function (c) {
+          ctx.beginPath();
+          ctx.arc(x + c.cx * p.r, y + c.cy * p.r, c.r * p.r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+      ctx.restore();
+    }
+  }
+
+  var SANTA_GRID = [
+    "........RRRR............",
+    ".......RRRRRR...........",
+    "......WWWWWWWW..........",
+    "......DGGGGGGD..........",
+    "......DGGKKGGD..........",
+    "......DGGGGGGD..........",
+    ".....DDDDDDDDDD.........",
+    "...SSSSSSSSSSSSSSSSSS...",
+    ".SSSSSSSSSSSSSSSSSSSSSS.",
+    "SSSSSSSSSSSSSSSSSSSSSSSS",
+    ".SSSSSSSSSSSSSSSSSSSSSS.",
+    "...L.....L.....L.....L.",
+    "........................"
+  ];
+  var SANTA_COLORS = { R: '#e2483b', W: '#f4f4f4', D: '#1a4a63', G: '#3ddc84', K: '#050607', S: '#8fa3ad', L: '#ffd76a' };
+
+  var CAT_GRID = [
+    "......WW........WW......",
+    ".....WWW........WWW.....",
+    "......WWWWWWWW..........",
+    "......WWWKKWWW..........",
+    "......WWWWWWWW..........",
+    "......WWWWWWWW..........",
+    ".....DDDDDDDDDD.........",
+    "...SSSSSSSSSSSSSSSSSS...",
+    ".SSSSSSSSSSSSSSSSSSSSSS.",
+    "SSSSSSSSSSSSSSSSSSSSSSSS",
+    ".SSSSSSSSSSSSSSSSSSSSSS.",
+    "...L.....L.....L.....L.",
+    "........................"
+  ];
+  var CAT_COLORS = { W: '#f4f4f4', K: '#050607', D: '#1a4a63', S: '#8fa3ad', L: '#ffd76a' };
+
+  var SHIP_CELL = 3;
+  var SHIPS = [
+    { grid: SANTA_GRID, colors: SANTA_COLORS, baseYFrac: 0.2, speed: 0.02, phaseShift: 0, reverse: false, glow: '#ffd76a', bottomFrac: 0.92 },
+    { grid: CAT_GRID, colors: CAT_COLORS, baseYFrac: 0.32, speed: 0.016, phaseShift: 4000, reverse: true, glow: '#bfe8ff', bottomFrac: 0.88 }
+  ];
+
+  function drawShip(cfg, w, h, t) {
+    var gridW = cfg.grid[0].length * SHIP_CELL;
+    var gridH = cfg.grid.length * SHIP_CELL;
+    var span = w + gridW * 2;
+    var tt = t + cfg.phaseShift;
+    var progress = (tt * cfg.speed) % span;
+    var frac = progress / span;
+    var x = cfg.reverse ? (w + gridW - progress) : (progress - gridW);
+    var arc = h * (cfg.bottomFrac - cfg.baseYFrac) * Math.abs(Math.cos(frac * Math.PI));
+    var y = h * cfg.baseYFrac + arc + Math.sin(tt * 0.0004) * 9;
+
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    var glow = ctx.createRadialGradient(x + gridW / 2, y + gridH + 4, 2, x + gridW / 2, y + gridH + 4, gridW * 0.6);
+    glow.addColorStop(0, cfg.glow);
+    glow.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.ellipse(x + gridW / 2, y + gridH + 4, gridW * 0.6, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    for (var row = 0; row < cfg.grid.length; row++) {
+      for (var col = 0; col < cfg.grid[row].length; col++) {
+        var ch = cfg.grid[row][col];
+        if (ch === '.') continue;
+        ctx.fillStyle = cfg.colors[ch];
+        ctx.fillRect(x + col * SHIP_CELL, y + row * SHIP_CELL, SHIP_CELL, SHIP_CELL);
+      }
+    }
+  }
+
+  var shootingStars = [];
+  var nextShootAt = null;
+
+  function maybeSpawnShootingStar(t, w) {
+    if (nextShootAt === null) nextShootAt = t + 1200 + Math.random() * 2000;
+    if (t > nextShootAt) {
+      shootingStars.push({
+        x: w * (0.15 + Math.random() * 0.6),
+        y: -20,
+        angle: Math.PI * 0.28 + (Math.random() - 0.5) * 0.2,
+        speed: 0.9 + Math.random() * 0.4,
+        born: t,
+        life: 700 + Math.random() * 300
+      });
+      nextShootAt = t + 5000 + Math.random() * 6000;
+    }
+  }
+
+  function drawShootingStars(t) {
+    for (var i = shootingStars.length - 1; i >= 0; i--) {
+      var s = shootingStars[i];
+      var age = t - s.born;
+      if (age > s.life) { shootingStars.splice(i, 1); continue; }
+      var dist = age * s.speed;
+      var x = s.x + Math.cos(s.angle) * dist;
+      var y = s.y + Math.sin(s.angle) * dist;
+      var tailLen = 70;
+      var tx = x - Math.cos(s.angle) * tailLen;
+      var ty = y - Math.sin(s.angle) * tailLen;
+      var alpha = 1 - age / s.life;
+      var grad = ctx.createLinearGradient(tx, ty, x, y);
+      grad.addColorStop(0, 'rgba(255,255,255,0)');
+      grad.addColorStop(1, 'rgba(255,255,255,' + (0.9 * alpha).toFixed(3) + ')');
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255,255,255,' + alpha.toFixed(3) + ')';
+      ctx.arc(x, y, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function draw(t) {
+    var w = window.innerWidth, h = window.innerHeight;
+    ctx.clearRect(0, 0, w, h);
+    for (var i = 0; i < PLANETS.length; i++) drawPlanet(PLANETS[i], w, h);
+    for (var i = 0; i < stars.length; i++) {
+      var s = stars[i];
+      var a = 0.2 + 0.35 * (0.5 + 0.5 * Math.sin(s.phase + t * s.speed));
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(0,162,234,' + a.toFixed(3) + ')';
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    maybeSpawnShootingStar(t, w);
+    drawShootingStars(t);
+    var successEl = document.getElementById('successView');
+    var onSuccessScreen = successEl && successEl.classList.contains('show');
+    if (!onSuccessScreen) {
+      for (var i = 0; i < SHIPS.length; i++) drawShip(SHIPS[i], w, h, t);
+    }
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', function () {
+    resize();
+    makeStars();
+  });
+
+  resize();
+  makeStars();
+  requestAnimationFrame(draw);
+})();
+</script>
+
+<script>
+const SECTIONS = [
+  { name: "Lighting", items: [
+    "Tail lights", "Head lights", "Driving lights", "Side lights", "Work lights",
+    "Beacon", "Reverse buzzer operational", "Top mine bar/lights", "Interior light", "Dash lights",
+    "Trailer plugs", "Number plate light", "Blinkers"
+  ]},
+  { name: "Communication & Electrical", items: [
+    "UHF and antenna", "VHF (if fitted)", "Music radio", "Dash cam",
+    "Battery terminals free from corrosion",
+    "Battery isolator operating correctly and free from corrosion",
+    "Anderson plugs covered, labelled and free from corrosion",
+    { label: "Charge rate within specification", valueOnPass: { unit: "volts", placeholder: "e.g. 13.8" } }
+  ]},
+  { name: "Vehicle Operation", items: [
+    "Wipers and washers operational", "Horn operational",
+    "Air conditioning operating correctly", "Airflow satisfactory", "Vent temperature satisfactory",
+    "Mirrors operating correctly (if electric)", "No warning lights displayed on dashboard", "Check e-stop"
+  ]},
+  { name: "Harness & Wiring", items: [
+    "Wiring harnesses secured and not hanging down",
+    "Loose wiring secured with cable ties where required"
+  ]}
+];
+
+const sectionsEl = document.getElementById('sections');
+let itemCounter = 0;
+const itemMeta = [];
+
+SECTIONS.forEach((section, sIdx) => {
+  const stepEl = document.createElement('div');
+  stepEl.className = 'step';
+  stepEl.id = 'step-' + sIdx;
+
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  const titleEl = document.createElement('div');
+  titleEl.className = 'section-title';
+  titleEl.textContent = section.name;
+  card.appendChild(titleEl);
+
+  section.items.forEach(rawItem => {
+    itemCounter++;
+    const id = 'item_' + itemCounter;
+    const hasValue = typeof rawItem === 'object' && !!rawItem.valueOnPass;
+    const itemLabel = hasValue ? rawItem.label : rawItem;
+    const unit = hasValue ? rawItem.valueOnPass.unit : null;
+    const placeholder = hasValue ? rawItem.valueOnPass.placeholder : null;
+
+    itemMeta.push({ id, label: itemLabel, section: section.name, stepIndex: sIdx + 1, hasValue, unit });
+
+    const wrap = document.createElement('div');
+    wrap.className = 'item';
+
+    const failBoxHtml = `<div class="comment-box" id="${id}_commentbox">
+           <div class="hint">Comment required for failed item</div>
+           <textarea name="${id}_comment" placeholder="Describe the fault..."></textarea>
+         </div>`;
+
+    const valueBoxHtml = hasValue
+      ? `<div class="comment-box value-box" id="${id}_valuebox">
+           <div class="hint">Reading required when passed</div>
+           <div class="value-input-row">
+             <input type="number" step="any" name="${id}_value" placeholder="${placeholder}">
+             <span class="value-unit">${unit}</span>
+           </div>
+         </div>`
+      : '';
+
+    wrap.innerHTML = `
+      <div class="item-label">${itemLabel}</div>
+      <div class="btn-group">
+        <input type="radio" name="${id}" value="Pass" id="${id}_pass">
+        <label for="${id}_pass" class="lbl-pass">&#10004; Pass</label>
+        <input type="radio" name="${id}" value="Fail" id="${id}_fail">
+        <label for="${id}_fail" class="lbl-fail">&#10006; Fail</label>
+        <input type="radio" name="${id}" value="N/A" id="${id}_na">
+        <label for="${id}_na" class="lbl-na">N/A</label>
+      </div>
+      ${failBoxHtml}
+      ${valueBoxHtml}
+    `;
+    card.appendChild(wrap);
+  });
+
+  stepEl.appendChild(card);
+
+  if (sIdx === SECTIONS.length - 1) {
+    const summaryCard = document.createElement('div');
+    summaryCard.className = 'card summary-card';
+    summaryCard.innerHTML = `
+      <h3>Summary of Comments</h3>
+      <div id="summaryContent"><span class="ok-msg">No defects recorded yet.</span></div>
+    `;
+    stepEl.appendChild(summaryCard);
+  }
+
+  sectionsEl.appendChild(stepEl);
+});
+
+const PDF_BLUE = [0, 162, 234];
+const PDF_GREY = [102, 102, 102];
+const PDF_DARK = [43, 43, 43];
+const PDF_PASS = [46, 158, 63];
+const PDF_FAIL = [216, 51, 42];
+const PDF_NA = [153, 153, 153];
+
+function pdfStatusColor(status) {
+  if (status === 'Pass') return PDF_PASS;
+  if (status === 'Fail') return PDF_FAIL;
+  return PDF_NA;
+}
+
+function generateInspectionPDF(data) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const marginL = 15, marginR = 15;
+  const contentW = pageW - marginL - marginR;
+  let y = 15;
+
+  const logoDataUrl = document.querySelector('header img').getAttribute('src');
+
+  function newPage() {
+    doc.addPage();
+    y = 15;
+    drawHeader();
+  }
+
+  function ensureSpace(neededMm) {
+    if (y + neededMm > pageH - 20) {
+      newPage();
+    }
+  }
+
+  function drawHeader() {
+    try {
+      doc.addImage(logoDataUrl, 'PNG', marginL, y, 40, 14);
+    } catch (e) { /* ignore if format detection fails */ }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(...PDF_DARK);
+    doc.text('Mine Ute Inspection Checklist', pageW - marginR, y + 6, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...PDF_GREY);
+    doc.text('TJC Auto Electrical', pageW - marginR, y + 11, { align: 'right' });
+    y += 20;
+    doc.setDrawColor(...PDF_BLUE);
+    doc.setLineWidth(0.8);
+    doc.line(marginL, y, pageW - marginR, y);
+    y += 8;
+  }
+
+  drawHeader();
+
+  doc.setFillColor(244, 246, 248);
+  doc.roundedRect(marginL, y, contentW, 26, 2, 2, 'F');
+  const details = [
+    ['Job Card Number', data.job_card_number],
+    ['Asset #', data.asset_number],
+    ['Registration', data.registration],
+    ['Date', data.inspection_date],
+    ['Inspector', data.inspector],
+  ];
+  const colW = contentW / 3;
+  let dx = marginL + 4, dy = y + 6;
+  details.forEach(([label, value], i) => {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...PDF_GREY);
+    doc.text(label.toUpperCase(), dx, dy);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(...PDF_DARK);
+    doc.text(String(value || '-'), dx, dy + 5);
+    if (i === 2) { dx = marginL + 4; dy += 13; }
+    else { dx += colW; }
+  });
+  y += 32;
+
+  data.sections.forEach(section => {
+    ensureSpace(14);
+    doc.setFillColor(...PDF_BLUE);
+    doc.rect(marginL, y, contentW, 7, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(255, 255, 255);
+    doc.text(section.name.toUpperCase(), marginL + 3, y + 5);
+    y += 11;
+
+    section.items.forEach(item => {
+      const hasComment = !!item.comment;
+      const rowH = hasComment ? 14 : 8;
+      ensureSpace(rowH + 2);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...PDF_DARK);
+      const labelLines = doc.splitTextToSize(item.label, contentW - 30);
+      doc.text(labelLines, marginL, y + 5);
+
+      const badgeW = 16, badgeH = 6;
+      const color = pdfStatusColor(item.status);
+      doc.setFillColor(...color);
+      doc.roundedRect(pageW - marginR - badgeW, y + 1, badgeW, badgeH, 1, 1, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(255, 255, 255);
+      doc.text(item.status, pageW - marginR - badgeW / 2, y + 5, { align: 'center' });
+
+      y += 8;
+
+      if (hasComment) {
+        const isReading = item.noteType === 'reading';
+        const noteColor = isReading ? PDF_BLUE : PDF_FAIL;
+        doc.setFillColor(...(isReading ? [240, 250, 255] : [255, 245, 244]));
+        doc.setDrawColor(...noteColor);
+        doc.setLineWidth(0.2);
+        const commentLines = doc.splitTextToSize(item.comment, contentW - 8);
+        const boxH = commentLines.length * 4 + 3;
+        doc.roundedRect(marginL, y, contentW, boxH, 1, 1, 'FD');
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8.5);
+        doc.setTextColor(...noteColor);
+        doc.text(commentLines, marginL + 3, y + 4);
+        y += boxH + 3;
+      }
+
+      doc.setDrawColor(230, 230, 230);
+      doc.setLineWidth(0.1);
+      doc.line(marginL, y, pageW - marginR, y);
+      y += 3;
+    });
+
+    y += 4;
+  });
+
+  const fails = [];
+  data.sections.forEach(s => s.items.forEach(i => {
+    if (i.status === 'Fail') fails.push({ ...i, section: s.name });
+  }));
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  const failBlocks = fails.map(f => {
+    const commentLines = doc.splitTextToSize(f.comment, contentW - 8);
+    return { f, commentLines, height: 5 + commentLines.length * 4.5 + 3 };
+  });
+  const boxH = fails.length
+    ? 10 + failBlocks.reduce((sum, b) => sum + b.height, 0)
+    : 16;
+
+  ensureSpace(Math.min(boxH + 4, pageH - 40));
+  const boxTop = y;
+  doc.setDrawColor(...PDF_BLUE);
+  doc.setLineWidth(0.6);
+  doc.roundedRect(marginL, boxTop, contentW, boxH, 2, 2, 'S');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(...PDF_BLUE);
+  doc.text('Summary of Defects', marginL + 4, y + 7);
+  y += 12;
+
+  if (!fails.length) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...PDF_PASS);
+    doc.text('No defects recorded — vehicle passed all checks.', marginL + 4, y);
+    y += 8;
+  } else {
+    failBlocks.forEach(({ f, commentLines }) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...PDF_FAIL);
+      doc.text(`${f.label} (${f.section})`, marginL + 4, y);
+      y += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...PDF_DARK);
+      doc.text(commentLines, marginL + 4, y);
+      y += commentLines.length * 4.5 + 3;
+    });
+  }
+  y = boxTop + boxH + 6;
+
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= pageCount; p++) {
+    doc.setPage(p);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...PDF_GREY);
+    doc.text(`Generated ${data.generatedAt}`, marginL, pageH - 10);
+    doc.text(`Page ${p} of ${pageCount}`, pageW - marginR, pageH - 10, { align: 'right' });
+  }
+
+  return doc;
+}
+
+const stepEls = Array.from(document.querySelectorAll('.step'));
+let currentStep = 0;
+
+function showStep(i) {
+  stepEls.forEach((el, idx) => el.classList.toggle('active', idx === i));
+  document.getElementById('stepIndicator').textContent = `Step ${i + 1} of ${stepEls.length}`;
+  document.getElementById('backBtn').style.display = i === 0 ? 'none' : 'inline-block';
+  document.getElementById('submitBtn').textContent = i === stepEls.length - 1 ? 'Submit Inspection' : 'Next';
+  document.getElementById('errorMsg').style.display = 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.querySelectorAll('input[type="radio"]').forEach(radio => {
+  radio.addEventListener('change', updateUI);
+});
+document.getElementById('checklistForm').addEventListener('input', (e) => {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' && e.target.type === 'number') updateUI();
+});
+document.getElementById('checklistForm').addEventListener('input', saveDraft);
+document.getElementById('checklistForm').addEventListener('change', saveDraft);
+
+function updateUI() {
+  let summaryHtml = '';
+  let hasFail = false;
+
+  itemMeta.forEach(meta => {
+    const commentBox = document.getElementById(meta.id + '_commentbox');
+    const valueBox = meta.hasValue ? document.getElementById(meta.id + '_valuebox') : null;
+    const checked = document.querySelector(`input[name="${meta.id}"]:checked`);
+
+    commentBox.classList.toggle('show', !!checked && checked.value === 'Fail');
+    if (valueBox) {
+      valueBox.classList.toggle('show', !!checked && checked.value === 'Pass');
+    }
+
+    if (checked && checked.value === 'Fail') {
+      hasFail = true;
+      const commentInput = document.querySelector(`[name="${meta.id}_comment"]`);
+      const commentText = commentInput.value.trim();
+      summaryHtml += `<div class="fail-row"><strong>${meta.label}</strong> (${meta.section}): ${commentText ? commentText : '<em>comment pending...</em>'}</div>`;
+    }
+  });
+
+  const summaryEl = document.getElementById('summaryContent');
+  if (summaryEl) {
+    summaryEl.innerHTML = hasFail ? summaryHtml : '<span class="ok-msg">No defects recorded &mdash; vehicle passed all checks.</span>';
+  }
+}
+
+const DRAFT_KEY = 'tjc_mine_ute_draft_v1';
+
+function saveDraft() {
+  const form = document.getElementById('checklistForm');
+  const draft = {
+    job_card_number: form.job_card_number.value,
+    asset_number: form.asset_number.value,
+    registration: form.registration.value,
+    inspection_date: form.inspection_date.value,
+    inspector: form.inspector.value,
+    items: {}
+  };
+  itemMeta.forEach(meta => {
+    const checked = document.querySelector(`input[name="${meta.id}"]:checked`);
+    const commentInput = document.querySelector(`[name="${meta.id}_comment"]`);
+    draft.items[meta.id] = {
+      status: checked ? checked.value : '',
+      comment: commentInput ? commentInput.value : ''
+    };
+  });
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch (e) { /* storage unavailable or full - draft saving is best-effort */ }
+}
+
+function loadDraft() {
+  let draft;
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    draft = JSON.parse(raw);
+  } catch (e) {
+    return;
+  }
+
+  const form = document.getElementById('checklistForm');
+  form.job_card_number.value = draft.job_card_number || '';
+  form.asset_number.value = draft.asset_number || '';
+  form.registration.value = draft.registration || '';
+  form.inspection_date.value = draft.inspection_date || '';
+  form.inspector.value = draft.inspector || '';
+
+  itemMeta.forEach(meta => {
+    const itemDraft = draft.items && draft.items[meta.id];
+    if (!itemDraft || !itemDraft.status) return;
+    const radio = document.querySelector(`input[name="${meta.id}"][value="${itemDraft.status}"]`);
+    if (radio) radio.checked = true;
+    const commentInput = document.querySelector(`[name="${meta.id}_comment"]`);
+    if (commentInput && itemDraft.comment) commentInput.value = itemDraft.comment;
+  });
+
+  updateUI();
+
+  const banner = document.createElement('div');
+  banner.className = 'draft-banner';
+  banner.textContent = 'Unfinished inspection restored from this device.';
+  document.getElementById('formView').prepend(banner);
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* ignore */ }
+}
+
+function fireworksBurst(originXPercent, originYPercent, delay) {
+  setTimeout(() => {
+    const overlay = document.createElement('div');
+    overlay.className = 'firework-overlay';
+    document.body.appendChild(overlay);
+    const colors = ['#ff0040', '#ff9900', '#ffee00', '#33ff00', '#00ccff', '#aa00ff', '#ff00aa'];
+    const particleCount = 40;
+    for (let i = 0; i < particleCount; i++) {
+      const p = document.createElement('div');
+      p.className = 'firework-particle';
+      const angle = (Math.PI * 2 * i) / particleCount + Math.random() * 0.3;
+      const dist = 60 + Math.random() * 160;
+      const fx = Math.cos(angle) * dist;
+      const fy = Math.sin(angle) * dist;
+      p.style.setProperty('--fx', fx + 'px');
+      p.style.setProperty('--fy', fy + 'px');
+      p.style.background = colors[Math.floor(Math.random() * colors.length)];
+      p.style.left = originXPercent + '%';
+      p.style.top = originYPercent + '%';
+      overlay.appendChild(p);
+    }
+    setTimeout(() => overlay.remove(), 1050);
+  }, delay);
+}
+
+function fireworks() {
+  fireworksBurst(25 + Math.random() * 10, 30 + Math.random() * 10, 0);
+  fireworksBurst(60 + Math.random() * 15, 45 + Math.random() * 10, 150);
+  fireworksBurst(40 + Math.random() * 20, 60 + Math.random() * 10, 300);
+}
+
+function validateStep(stepIndex) {
+  const errorMsg = document.getElementById('errorMsg');
+
+  if (stepIndex === 0) {
+    const requiredInputs = stepEls[0].querySelectorAll('input[required]');
+    for (const inp of requiredInputs) {
+      if (!inp.value.trim()) {
+        errorMsg.style.display = 'block';
+        inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        inp.focus();
+        return false;
+      }
+    }
+    return true;
+  }
+
+  const stepItems = itemMeta.filter(m => m.stepIndex === stepIndex);
+  for (const meta of stepItems) {
+    const checked = document.querySelector(`input[name="${meta.id}"]:checked`);
+    if (!checked) {
+      errorMsg.style.display = 'block';
+      document.getElementById(meta.id + '_commentbox').previousElementSibling.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return false;
+    }
+    if (checked.value === 'Fail') {
+      const commentInput = document.querySelector(`[name="${meta.id}_comment"]`);
+      if (!commentInput.value.trim()) {
+        errorMsg.style.display = 'block';
+        commentInput.focus();
+        commentInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+      }
+    }
+    if (meta.hasValue && checked.value === 'Pass') {
+      const valueInput = document.querySelector(`[name="${meta.id}_value"]`);
+      if (!valueInput.value.trim()) {
+        errorMsg.style.display = 'block';
+        valueInput.focus();
+        valueInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function openEmailHandoff(jobDetails, summaryText, pdfFilename) {
+  const subject = `Mine Ute Inspection — ${jobDetails.registration || jobDetails.asset_number || 'Unknown'} — ${jobDetails.inspection_date || ''}`;
+  const body = [
+    'Hi TJC admin,',
+    '',
+    `Please find attached the inspection report (PDF: ${pdfFilename}, just downloaded to this device — attach it below before sending).`,
+    '',
+    `Job Card Number: ${jobDetails.job_card_number}`,
+    `Asset #: ${jobDetails.asset_number}`,
+    `Registration: ${jobDetails.registration}`,
+    `Date: ${jobDetails.inspection_date}`,
+    `Inspector: ${jobDetails.inspector}`,
+    '',
+    'Defects:',
+    summaryText || 'No defects recorded — vehicle passed all checks.',
+    '',
+    'Thanks,',
+    jobDetails.inspector || ''
+  ].join('\n');
+  const mailto = `mailto:admin@tjcautoelectrical.com.au?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailto;
+}
+
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const DEMO_MODE = true; // Portfolio showcase build — email sending is always disabled here.
+
+function showSubmitSuccess(fallback, needsManualDownload) {
+  document.getElementById('formView').style.display = 'none';
+  document.querySelector('.submit-bar').style.display = 'none';
+  document.getElementById('successView').classList.add('show');
+  const hint = document.getElementById('submitHint');
+  if (hint) {
+    hint.textContent = DEMO_MODE
+      ? "This is what a successful submission looks like — in the real app, the report and PDF would be emailed automatically. Nothing was actually sent."
+      : fallback
+      ? (needsManualDownload
+        ? "We couldn't send this automatically. Tap \"Download PDF Copy\" below, then attach it to the email that should have opened in your mail app and hit send to finish up."
+        : "We couldn't send this automatically, so a PDF copy just downloaded and an email should have opened in your mail app — attach that PDF and hit send to finish up.")
+      : 'Your report and PDF copy have been emailed automatically — no further action needed.';
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  startSuccessCelebration();
+}
+
+async function buildSummaryAndSubmit() {
+  const form = document.getElementById('checklistForm');
+  let summaryText = '';
+
+  itemMeta.forEach(meta => {
+    const checked = document.querySelector(`input[name="${meta.id}"]:checked`);
+    if (checked && checked.value === 'Fail') {
+      const commentTextarea = document.querySelector(`textarea[name="${meta.id}_comment"]`);
+      summaryText += `FAILED - ${meta.label} (${meta.section}): ${commentTextarea.value.trim()}\n`;
+    }
+  });
+
+  const jobDetails = {
+    job_card_number: form.job_card_number.value.trim(),
+    asset_number: form.asset_number.value.trim(),
+    registration: form.registration.value.trim(),
+    inspection_date: form.inspection_date.value,
+    inspector: form.inspector.value.trim(),
+    generatedAt: new Date().toLocaleString('en-AU'),
+  };
+
+  const pdfSections = SECTIONS.map(section => ({
+    name: section.name,
+    items: itemMeta.filter(m => m.section === section.name).map(meta => {
+      const checked = document.querySelector(`input[name="${meta.id}"]:checked`);
+      const status = checked ? checked.value : 'N/A';
+      let comment = '';
+      let noteType = 'fault';
+      if (status === 'Fail') {
+        comment = document.querySelector(`[name="${meta.id}_comment"]`).value.trim();
+        noteType = 'fault';
+      } else if (meta.hasValue && status === 'Pass') {
+        const rawValue = document.querySelector(`[name="${meta.id}_value"]`).value.trim();
+        comment = rawValue ? `${rawValue} ${meta.unit}` : '';
+        noteType = 'reading';
+      }
+      return { label: meta.label, status, comment, noteType };
+    }),
+  }));
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Sending...';
+
+  if (DEMO_MODE) {
+    setTimeout(() => {
+      clearDraft();
+      showSubmitSuccess(false);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Inspection';
+    }, 500);
+    return;
+  }
+
+  const pdfDoc = generateInspectionPDF({ ...jobDetails, sections: pdfSections });
+  const pdfFilename = `Inspection_${jobDetails.job_card_number || 'report'}_${jobDetails.inspection_date || ''}.pdf`;
+  const pdfBase64 = pdfDoc.output('datauristring').split('base64,')[1];
+
+  try {
+    const payload = { ...jobDetails, summaryText, pdfFilename, pdfBase64 };
+
+    const resp = await fetch('/.netlify/functions/submit-inspection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) throw new Error('Submission failed');
+
+    clearDraft();
+    showSubmitSuccess(false);
+  } catch (err) {
+    // Automatic email send failed (or the function isn't deployed yet) --
+    // fall back to a local PDF download + pre-filled email the inspector sends themselves.
+    // iOS Safari doesn't support a silent download: jsPDF's save() there navigates
+    // the whole tab away to display the PDF instead, so the success screen never shows.
+    // Give iOS a manual download link (a real tap) instead of auto-saving.
+    if (IS_IOS) {
+      const pdfLink = document.getElementById('iosPdfLink');
+      pdfLink.href = pdfDoc.output('bloburl');
+      pdfLink.download = pdfFilename;
+      pdfLink.style.display = 'inline-block';
+    } else {
+      pdfDoc.save(pdfFilename);
+    }
+    openEmailHandoff(jobDetails, summaryText, pdfFilename);
+    clearDraft();
+    showSubmitSuccess(true, IS_IOS);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Submit Inspection';
+  }
+}
+
+function startSuccessCelebration() {
+  drawSceneUfo();
+  runNightSceneCycle();
+}
+
+function drawSceneUfo() {
+  const canvas = document.getElementById('ufoCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const grid = [
+    "........RRRR............",
+    ".......RRRRRR...........",
+    "......WWWWWWWW..........",
+    "......DGGGGGGD..........",
+    "......DGGKKGGD..........",
+    "......DGGGGGGD..........",
+    ".....DDDDDDDDDD.........",
+    "...SSSSSSSSSSSSSSSSSS...",
+    ".SSSSSSSSSSSSSSSSSSSSSS.",
+    "SSSSSSSSSSSSSSSSSSSSSSSS",
+    ".SSSSSSSSSSSSSSSSSSSSSS.",
+    "...L.....L.....L.....L.",
+    "........................"
+  ];
+  const colors = { R: '#e2483b', W: '#f4f4f4', D: '#1a4a63', G: '#3ddc84', K: '#050607', S: '#8fa3ad', L: '#ffd76a' };
+  const cell = 3;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let row = 0; row < grid.length; row++) {
+    for (let col = 0; col < grid[row].length; col++) {
+      const ch = grid[row][col];
+      if (ch === '.') continue;
+      ctx.fillStyle = colors[ch];
+      ctx.fillRect(col * cell, row * cell, cell, cell);
+    }
+  }
+}
+
+function runNightSceneCycle() {
+  const ufo = document.getElementById('ufoCanvas');
+  const beam = document.getElementById('beam');
+  const grinch = document.getElementById('grinchSprite');
+  const cat = document.getElementById('catRunner');
+  const scene = document.querySelector('.night-scene');
+  if (!ufo || !beam || !grinch || !cat || !scene) return;
+
+  const INTERCEPT_MS = 1800; // how long the grinch's sneak & the ufo's approach both take
+
+  // positions are fractions of the scene's actual width, not fixed pixels --
+  // this scene renders at very different widths on phone vs desktop
+  const w = scene.offsetWidth;
+  const grinchStart = w * 0.28;
+  const grinchCaught = w * 0.58;
+  const ufoHover = w * 0.53;
+  const beamLeft = w * 0.57;
+  const catTarget = w * 0.84;
+  const ufoExit = w + 100; // always off-screen regardless of width
+
+  // reset everything to its starting position
+  beam.classList.remove('show');
+  beam.style.left = beamLeft + 'px';
+  grinch.style.transition = 'none';
+  grinch.style.transform = 'translateY(0) scale(1)';
+  grinch.style.opacity = '1';
+  grinch.style.left = grinchStart + 'px';
+  grinch.classList.add('sneaking');
+  cat.classList.remove('running');
+  cat.style.transition = 'none';
+  cat.style.left = '-30px';
+  ufo.style.transition = 'none';
+  ufo.style.left = '-90px';
+  void ufo.offsetWidth;
+  void grinch.offsetWidth;
+
+  // the grinch sneaks off toward the bush, having just broken the car...
+  requestAnimationFrame(() => {
+    grinch.style.transition = `left ${INTERCEPT_MS}ms ease-in-out`;
+    grinch.style.left = grinchCaught + 'px';
+    // ...while the ship flies in from the opposite side, timed to arrive at the same spot
+    ufo.style.transition = `left ${INTERCEPT_MS}ms linear`;
+    ufo.style.left = ufoHover + 'px';
+  });
+
+  setTimeout(() => {
+    // caught! beam locks onto him mid-sneak
+    beam.classList.add('show');
+
+    setTimeout(() => {
+      grinch.classList.remove('sneaking');
+      grinch.style.transition = 'transform 900ms ease-in, opacity 900ms ease-in';
+      grinch.style.transform = 'translateY(-70px) scale(0.3)';
+      grinch.style.opacity = '0';
+
+      setTimeout(() => {
+        beam.classList.remove('show');
+
+        setTimeout(() => {
+          // ship flies off with its catch
+          ufo.style.transition = 'left 1800ms linear';
+          ufo.style.left = ufoExit + 'px';
+
+          setTimeout(() => {
+            // only once the ship is fully gone does the cat make a break for the bush
+            cat.style.transition = 'none';
+            cat.style.left = '-30px';
+            cat.classList.add('running');
+            void cat.offsetWidth;
+            requestAnimationFrame(() => {
+              cat.style.transition = 'left 2800ms linear';
+              cat.style.left = catTarget + 'px';
+            });
+
+            setTimeout(() => {
+              cat.classList.remove('running');
+              setTimeout(runNightSceneCycle, 2200);
+            }, 2800);
+          }, 1800);
+        }, 300);
+      }, 900);
+    }, 250);
+  }, INTERCEPT_MS);
+}
+
+document.getElementById('backBtn').addEventListener('click', function() {
+  if (currentStep > 0) {
+    currentStep--;
+    showStep(currentStep);
+  }
+});
+
+document.getElementById('submitBtn').addEventListener('click', function() {
+  if (!validateStep(currentStep)) return;
+
+  document.getElementById('errorMsg').style.display = 'none';
+
+  if (currentStep < stepEls.length - 1) {
+    fireworks();
+    setTimeout(() => {
+      currentStep++;
+      showStep(currentStep);
+    }, 350);
+  } else {
+    buildSummaryAndSubmit();
+  }
+});
+
+if (location.hash === '#preview-success') {
+  document.getElementById('formView').style.display = 'none';
+  document.querySelector('.submit-bar').style.display = 'none';
+  document.getElementById('successView').classList.add('show');
+  startSuccessCelebration();
+} else {
+  loadDraft();
+  showStep(0);
+}
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+
+</body>
+</html>
