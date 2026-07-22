@@ -313,6 +313,20 @@
   }
   button.submit-btn:active, button.back-btn:active { opacity: 0.85; }
   button.submit-btn:disabled { opacity: 0.6; box-shadow: none; cursor: default; }
+  button.skip-btn {
+    flex: 0 0 auto;
+    background: transparent;
+    color: #ffb020;
+    border: 2px dashed #ffb020;
+    padding: 14px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button.skip-btn:hover { background: #ffb020; color: #201400; }
+  button.skip-btn:active { opacity: 0.85; }
   .success-screen {
     display: none;
     text-align: center;
@@ -694,6 +708,7 @@
   <div class="container">
     <div class="nav-buttons">
       <button type="button" class="back-btn" id="backBtn" style="display:none">Back</button>
+      <button type="button" class="skip-btn" id="skipBtn">Skip page &rarr;</button>
       <button type="button" class="submit-btn" id="submitBtn">Next</button>
     </div>
     <div class="error-msg" id="errorMsg">Please complete all required fields and add a comment for any failed item.</div>
@@ -1244,6 +1259,7 @@ function showStep(i) {
   stepEls.forEach((el, idx) => el.classList.toggle('active', idx === i));
   document.getElementById('stepIndicator').textContent = `Step ${i + 1} of ${stepEls.length}`;
   document.getElementById('backBtn').style.display = i === 0 ? 'none' : 'inline-block';
+  document.getElementById('skipBtn').style.display = i === stepEls.length - 1 ? 'none' : 'inline-block';
   document.getElementById('submitBtn').textContent = i === stepEls.length - 1 ? 'Submit Inspection' : 'Next';
   document.getElementById('errorMsg').style.display = 'none';
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1689,6 +1705,14 @@ function runNightSceneCycle() {
 document.getElementById('backBtn').addEventListener('click', function() {
   if (currentStep > 0) {
     currentStep--;
+    showStep(currentStep);
+  }
+});
+
+// Demo-only: jump to the next page without filling anything in or validating.
+document.getElementById('skipBtn').addEventListener('click', function() {
+  if (currentStep < stepEls.length - 1) {
+    currentStep++;
     showStep(currentStep);
   }
 });
